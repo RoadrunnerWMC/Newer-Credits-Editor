@@ -136,7 +136,6 @@ else:
     print('>> No \'-upx\' flag specified, so UPX compression will not be attempted.')
 
 print('>> Attempting to copy required files...')
-shutil.copy('charcodes.txt', dir_)
 shutil.copy('license.txt', dir_)
 shutil.copy('readme.md', dir_)
 if not os.path.isfile(dir_ + '/libEGL.dll'):
