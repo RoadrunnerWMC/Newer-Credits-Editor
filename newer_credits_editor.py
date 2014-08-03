@@ -2,7 +2,7 @@
 # -*- coding: latin-1 -*-
 
 # Newer Credits Editor - Edits NewerSMBW's StaffRoll.bin
-# Version 1.1
+# Version 1.2
 # Copyright (C) 2013-2014 RoadrunnerWMC
 
 # This file is part of Newer Credits Editor.
@@ -30,7 +30,7 @@
 ################################################################
 
 
-version = '1.1'
+version = '1.2'
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys

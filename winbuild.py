@@ -2,7 +2,7 @@
 # -*- coding: latin-1 -*-
 
 # Newer Credits Editor - Edits NewerSMBW's StaffRoll.bin
-# Version 1.1
+# Version 1.2
 # Copyright (C) 2013-2014 RoadrunnerWMC
 
 # This file is part of Newer Credits Editor.
@@ -25,8 +25,8 @@
 # Builds Newer Credits Editor to a Windows binary (*.exe)
 # Use the values below to configure the release:
 
-PackageName = 'nce_1.1_win32'
-Version = '1.1' # This must be a valid float in string format
+PackageName = 'nce_1.2_win32'
+Version = '1.2' # This must be a valid float in string format
 
 
 ################################################################

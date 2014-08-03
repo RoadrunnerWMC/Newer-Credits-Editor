@@ -1,5 +1,5 @@
 # Newer Credits Editor
-(1.1)
+(1.2)
 
 ----------------------------------------------------------------
 
@@ -52,6 +52,9 @@ See the license file in the distribution for information.
 ----------------------------------------------------------------
 
 ## Changelog
+
+Release 1.2 (unreleased)
+ * No changes yet
 
 Release 1.1 (August 2, 2014)
  * Added license.txt and license headers to the source files
