@@ -49,7 +49,7 @@ class Command():
         self.name = ''
         self.description = ''
         self.widgets = []
-        self.Layout = QtGui.QVBoxLayout()
+        self.Layout = QtWidgets.QVBoxLayout()
 
     def fromData(self, data):
         """Sets settings based on some data"""
@@ -66,7 +66,7 @@ class Command():
     def GenerateLayout(self):
         """Creates a layout from self.widgets"""        
         if len(self.widgets) > 0:
-            L = QtGui.QFormLayout()
+            L = QtWidgets.QFormLayout()
             for name, W in self.widgets:
                 L.addRow(name, W)
             self.Layout = L
@@ -88,7 +88,7 @@ class Com_delay(Command):
         self.name = 'Wait'
         self.description = 'Causes a delay before the next command is processed'
 
-        W = QtGui.QSpinBox()
+        W = QtWidgets.QSpinBox()
         W.setMaximum(0xFFFF)
         self.widgets = []
         self.widgets.append(('Time (in frames):', W))
@@ -112,7 +112,7 @@ class Com_switch_scene(Command):
         self.name = 'Switch Scene'
         self.description = 'Causes the level to switch to another zone'
 
-        W = QtGui.QSpinBox()
+        W = QtWidgets.QSpinBox()
         W.setMaximum(0xFF)
         self.widgets = []
         self.widgets.append(('Scene ID:', W))
@@ -133,7 +133,7 @@ class Com_switch_scene_and_wait(Command):
         self.name = 'Switch Scene and Wait'
         self.description = 'Causes the level to switch to another zone and then wait'
 
-        W = QtGui.QSpinBox()
+        W = QtWidgets.QSpinBox()
         W.setMaximum(0xFF)
         self.widgets = []
         self.widgets.append(('Scene ID:', W))
@@ -181,8 +181,8 @@ class Com_set_text(Command):
         self.name = 'Set Text'
         self.description = 'Changes the current text'
 
-        W = QtGui.QLineEdit()
-        X = QtGui.QPlainTextEdit()
+        W = QtWidgets.QLineEdit()
+        X = QtWidgets.QPlainTextEdit()
         X.setLineWrapMode(X.NoWrap)
         self.widgets = (('Title:', W), ('Text:', X))
         self.GenerateLayout()
@@ -249,7 +249,7 @@ class Com_play_title_anim(Command):
         self.name = 'Play Titlescreen Logo Animation'
         self.description = 'Plays a titlescreen logo animation'
 
-        W = QtGui.QSpinBox()
+        W = QtWidgets.QSpinBox()
         W.setMaximum(0xFF)
         self.widgets = []
         self.widgets.append(('Animation ID:', W))
@@ -448,32 +448,32 @@ class NewerStaffRollBin():
 
 
 # Credits Viewer
-class CreditsViewer(QtGui.QWidget):
+class CreditsViewer(QtWidgets.QWidget):
     """Widget that allows you to view credits data"""
 
     # Drag-and-Drop Picker
-    class DNDPicker(QtGui.QListWidget):
+    class DNDPicker(QtWidgets.QListWidget):
         """A list widget which calls a function when an item's been moved"""
         def __init__(self, handler):
-            QtGui.QListWidget.__init__(self)
+            QtWidgets.QListWidget.__init__(self)
             self.handler = handler
-            self.setDragDropMode(QtGui.QListWidget.InternalMove)
+            self.setDragDropMode(QtWidgets.QListWidget.InternalMove)
         def dropEvent(self, event):
-            QtGui.QListWidget.dropEvent(self, event)
+            QtWidgets.QListWidget.dropEvent(self, event)
             self.handler()
 
     # Init
     def __init__(self):
         """Initialises the widget"""
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.file = None
 
         # Create the command picker widgets
-        PickerBox = QtGui.QGroupBox('Commands')
+        PickerBox = QtWidgets.QGroupBox('Commands')
         self.picker = self.DNDPicker(self.HandleDragDrop)
         self.picker.setMinimumWidth(384)
-        self.ABtn = QtGui.QPushButton('Add')
-        self.RBtn = QtGui.QPushButton('Remove')
+        self.ABtn = QtWidgets.QPushButton('Add')
+        self.RBtn = QtWidgets.QPushButton('Remove')
 
         # Add some tooltips
         self.ABtn.setToolTip('<b>Add:</b><br>Adds an command after the currently selected command')
@@ -490,22 +490,22 @@ class CreditsViewer(QtGui.QWidget):
         self.RBtn.setEnabled(False)
 
         # Set up the QGroupBox layout
-        L = QtGui.QGridLayout()
+        L = QtWidgets.QGridLayout()
         L.addWidget(self.picker, 0, 0, 1, 2)
         L.addWidget(self.ABtn, 1, 0)
         L.addWidget(self.RBtn, 1, 1)
         PickerBox.setLayout(L)
 
         # Create the command editor
-        self.ComBox = QtGui.QGroupBox('Command')
+        self.ComBox = QtWidgets.QGroupBox('Command')
         self.edit = CommandEditor()
         self.edit.dataChanged.connect(self.HandleComDatChange)
-        L = QtGui.QVBoxLayout()
+        L = QtWidgets.QVBoxLayout()
         L.addWidget(self.edit)
         self.ComBox.setLayout(L)
         
         # Make the main layout
-        L = QtGui.QHBoxLayout()
+        L = QtWidgets.QHBoxLayout()
         L.addWidget(PickerBox)
         L.addWidget(self.ComBox)
         self.setLayout(L)
@@ -523,7 +523,7 @@ class CreditsViewer(QtGui.QWidget):
 
         # Add commands
         for com in file.Commands:
-            item = QtGui.QListWidgetItem() # self.UpdateNames will add the name
+            item = QtWidgets.QListWidgetItem() # self.UpdateNames will add the name
             item.setData(QtCore.Qt.UserRole, com)
             self.picker.addItem(item)
 
@@ -536,7 +536,7 @@ class CreditsViewer(QtGui.QWidget):
     def UpdateNames(self):
         """Updates item names in the msg picker"""
         for item in self.picker.findItems('', QtCore.Qt.MatchContains):
-            com = item.data(QtCore.Qt.UserRole).toPyObject()
+            com = item.data(QtCore.Qt.UserRole)
 
             # Pick text and tooltips
             text = com.name
@@ -560,7 +560,7 @@ class CreditsViewer(QtGui.QWidget):
         # First, update the file
         newCommands = []
         for item in self.picker.findItems('', QtCore.Qt.MatchContains):
-            com = item.data(QtCore.Qt.UserRole).toPyObject()
+            com = item.data(QtCore.Qt.UserRole)
             newCommands.append(com)
         self.file.Commands = newCommands
 
@@ -582,7 +582,7 @@ class CreditsViewer(QtGui.QWidget):
 
         # Get the command
         if currentItem == None: return
-        com = currentItem.data(QtCore.Qt.UserRole).toPyObject()
+        com = currentItem.data(QtCore.Qt.UserRole)
 
         # Set up the command editor
         e = CommandEditor(com)
@@ -596,7 +596,7 @@ class CreditsViewer(QtGui.QWidget):
 
         # Add it to self.file and self.picker
         self.file.Commands.append(com)
-        item = QtGui.QListWidgetItem()
+        item = QtWidgets.QListWidgetItem()
         item.setData(QtCore.Qt.UserRole, com)
         self.picker.addItem(item)
         self.picker.scrollToItem(item)
@@ -607,7 +607,7 @@ class CreditsViewer(QtGui.QWidget):
     def HandleR(self):
         """Handles the user clicking Remove"""
         item = self.picker.currentItem()
-        com = item.data(QtCore.Qt.UserRole).toPyObject()
+        com = item.data(QtCore.Qt.UserRole)
 
         # Remove it from file and the picker
         self.file.Commands.remove(com)
@@ -637,12 +637,12 @@ class CreditsViewer(QtGui.QWidget):
 # NOTE: Due to Qt's limitations, this works differently
 # than it did in my other tools. A new instance of this
 # is created every time the selection changes.
-class CommandEditor(QtGui.QWidget):
+class CommandEditor(QtWidgets.QWidget):
     """Widget that allows you to edit an command"""
     dataChanged = QtCore.pyqtSignal()
     def __init__(self, com = Command()):
         """Initialises the CommandEditor"""
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.com = com
 
         # Set the layout
@@ -654,9 +654,9 @@ class CommandEditor(QtGui.QWidget):
             w = self.com.Layout.itemAt(i).widget()
 
             connectors = {
-                QtGui.QSpinBox: 'valueChanged',
-                QtGui.QLineEdit: 'textEdited',
-                QtGui.QPlainTextEdit: 'textChanged',
+                QtWidgets.QSpinBox: 'valueChanged',
+                QtWidgets.QLineEdit: 'textEdited',
+                QtWidgets.QPlainTextEdit: 'textChanged',
                 }
             for name in connectors:
                 if isinstance(w, name):
@@ -675,9 +675,9 @@ class CommandEditor(QtGui.QWidget):
 # Get Null Layout
 def GetNullLayout():
     """Returns a layout with only 'No settings'"""
-    NA = QtGui.QLabel('<i>No settings</i>')
+    NA = QtWidgets.QLabel('<i>No settings</i>')
     NA.setEnabled(False)
-    L = QtGui.QVBoxLayout()
+    L = QtWidgets.QVBoxLayout()
     L.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
     L.addWidget(NA)
     return L
@@ -688,33 +688,33 @@ def GetNullLayout():
 def GetUserPickedCommand():
     """Returns a command picked by the user"""
     dlg = CommandPickDlg()
-    if dlg.exec_() != QtGui.QDialog.Accepted: return
+    if dlg.exec_() != QtWidgets.QDialog.Accepted: return
 
     return dlg.combo.itemData(dlg.combo.currentIndex())
 
-class CommandPickDlg(QtGui.QDialog):
+class CommandPickDlg(QtWidgets.QDialog):
     """Dialog that lets the user pick a command type"""
     def __init__(self):
         """Initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        QtWidgets.QDialog.__init__(self)
 
         # Make a label
-        label = QtGui.QLabel('Pick the type of command<br>you would like to insert:')
+        label = QtWidgets.QLabel('Pick the type of command<br>you would like to insert:')
 
         # Make a combobox and add entries
-        self.combo = QtGui.QComboBox()
+        self.combo = QtWidgets.QComboBox()
         items = []
         for com in CommandsById:
             if com == Com_stop: continue
             self.combo.addItem(com().name, com)
 
         # Make a buttonbox
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
         # Add a layout
-        L = QtGui.QVBoxLayout()
+        L = QtWidgets.QVBoxLayout()
         L.addWidget(label)
         L.addWidget(self.combo)
         L.addWidget(buttonBox)
@@ -726,11 +726,11 @@ class CommandPickDlg(QtGui.QDialog):
 ######################### Main Window ##########################
 
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     """Main window"""
     def __init__(self):
         """Initialises the window"""
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         self.fp = None # file path
 
         # Create the viewer
@@ -791,7 +791,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def HandleOpen(self):
         """Handles file opening"""
-        fp = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '', 'Binary Files (*.bin);;All Files (*)')[0]
+        fp = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', '', 'Binary Files (*.bin);;All Files (*)')[0]
         if fp == '': return
         self.fp = fp
 
@@ -827,7 +827,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def HandleSaveAs(self):
         """Handles saving to a new file"""
-        fp = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '', 'Binary Files (*.bin);;All Files (*)')[0]
+        fp = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', '', 'Binary Files (*.bin);;All Files (*)')[0]
         if fp == '': return
         self.fp = fp
 
@@ -846,16 +846,16 @@ class MainWindow(QtGui.QMainWindow):
         try: readme = open('readme.md', 'r').read()
         except: readme = 'Newer Credits Editor %s by RoadrunnerWMC\n(No readme.md found!)\nLicensed under GPL 3' % version
 
-        txtedit = QtGui.QPlainTextEdit(readme)
+        txtedit = QtWidgets.QPlainTextEdit(readme)
         txtedit.setReadOnly(True)
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(txtedit)
         layout.addWidget(buttonBox)
 
-        dlg = QtGui.QDialog()
+        dlg = QtWidgets.QDialog()
         dlg.setLayout(layout)
         dlg.setModal(True)
         dlg.setMinimumWidth(384)
@@ -872,7 +872,7 @@ class MainWindow(QtGui.QMainWindow):
 # Main function
 def main():
     """Main startup function"""
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     mainWindow = MainWindow()
     sys.exit(app.exec_())
 main()
