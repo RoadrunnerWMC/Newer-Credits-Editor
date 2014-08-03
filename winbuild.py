@@ -25,7 +25,7 @@
 # Builds Newer Credits Editor to a Windows binary (*.exe)
 # Use the values below to configure the release:
 
-PackageName = 'nce_1.3_win32'
+PackageName = 'nce_1.1_win32'
 Version = '1.1' # This must be a valid float in string format
 
 
