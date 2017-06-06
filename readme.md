@@ -8,7 +8,7 @@ On GitHub: https://github.com/RoadrunnerWMC/Newer-Credits-Editor
 
 ----------------------------------------------------------------
 
-Newer Credits Editor is a program which can edit and save copies of NewerStaffRoll.bin from Newer Super Mario Bros. Wii.  
+Newer Credits Editor is a program which can edit and save copies of NewerStaffRoll.bin from Newer Super Mario Bros. Wii (http://newerteam.com/wii/).
 
 ----------------------------------------------------------------
 
@@ -38,8 +38,8 @@ Developers:
 
 ### Dependencies/Libraries/Resources
 
-Python 3 - Python Software Foundation (https://www.python.org)  
-Qt 5 - Nokia (http://qt.nokia.com)  
+Python 3.6 - Python Software Foundation (https://www.python.org)  
+Qt 5 - The Qt Company (https://www.qt.io/)  
 PyQt5 - Riverbank Computing (http://www.riverbankcomputing.co.uk/software/pyqt/intro)  
 cx_Freeze - Anthony Tuininga (http://cx-freeze.sourceforge.net)
 
@@ -54,7 +54,9 @@ See the license file in the distribution for information.
 ## Changelog
 
 Release 1.2 (unreleased)
- * No changes yet
+ * Now supports PyQt 5.7
+ * Removed lingering Python 2 code
+ * Various code style improvements
 
 Release 1.1 (August 2, 2014)
  * Added license.txt and license headers to the source files

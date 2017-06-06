@@ -3,7 +3,7 @@
 
 # Newer Credits Editor - Edits NewerSMBW's StaffRoll.bin
 # Version 1.2
-# Copyright (C) 2013-2014 RoadrunnerWMC
+# Copyright (C) 2013-2017 RoadrunnerWMC
 
 # This file is part of Newer Credits Editor.
 
@@ -32,8 +32,10 @@
 
 version = '1.2'
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
+import uuid
+
+from PyQt5 import QtCore, QtGui, QtWidgets; Qt = QtCore.Qt
 
 
 
@@ -43,154 +45,178 @@ import sys
 ################################################################
 ########################### Commands ###########################
 
-class Command():
-    """Base class for all commands"""
-    def __init__(self):
-        self.name = ''
-        self.description = ''
-        self.widgets = []
-        self.Layout = QtWidgets.QVBoxLayout()
 
-    def fromData(self, data):
-        """Sets settings based on some data"""
-        pass
-    
-    def toData(self):
-        """Returns data based on current settings"""
+class Command():
+    """
+    Base class for all commands
+    """
+    name = ''
+    description = ''
+    dynamicDescription = None
+
+    def __init__(self):
+        self.widgets = []
+        self.layout = QtWidgets.QVBoxLayout()
+        self.uuid = uuid.uuid4()
+
+    @classmethod
+    def fromData(cls, data):
+        """
+        Create a Command instance based on some data
+        """
+        return cls()
+
+    def asData(self):
+        """
+        Return data based on current settings
+        """
         return ()
 
-    def toPyObject(self):
-        """Py2 / Py3 compatibility"""
-        return self
-
-    def GenerateLayout(self):
-        """Creates a layout from self.widgets"""        
+    def generateLayout(self):
+        """
+        Create a layout from self.widgets
+        """
         if len(self.widgets) > 0:
             L = QtWidgets.QFormLayout()
             for name, W in self.widgets:
                 L.addRow(name, W)
-            self.Layout = L
-        else: self.Layout = GetNullLayout()
+            self.layout = L
+        else: self.layout = getNullLayout()
 
 
-class Com_stop(Command):
-    """Command which indicates EOF"""
+class DelayCommand(Command):
+    """
+    Command which indicates a delay
+    """
+    name = 'Wait'
+    description = 'Causes a delay before the next command is processed.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.GenerateLayout()
-        # Isn't displayed in the editor so
-        # it doesn't need a name, description or widgets
-    
-class Com_delay(Command):
-    """Command which indicates a delay"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Wait'
-        self.description = 'Causes a delay before the next command is processed'
+        super().__init__()
 
         W = QtWidgets.QSpinBox()
         W.setMaximum(0xFFFF)
         self.widgets = []
         self.widgets.append(('Time (in frames):', W))
-        self.GenerateLayout()
+        self.generateLayout()
 
-    def fromData(self, data):
+    @classmethod
+    def fromData(cls, data):
+        cmd = cls()
         delay = (data[0] << 8) | data[1]
-        self.widgets[0][1].setValue(delay)
+        cmd.widgets[0][1].setValue(delay)
+        return cmd
 
-    def toData(self):
+    def asData(self):
         delay = self.widgets[0][1].value()
         a = (delay >> 8) & 0xFF
         b = delay & 0xFF
         return (a, b)
-        
-    
-class Com_switch_scene(Command):
-    """Command which indicates a scene switch"""
+
+    @property
+    def dynamicDescription(self):
+        n = self.widgets[0][1].value()
+        return 'for 1 frame' if n == 1 else f'for {n} frames'
+
+
+class SwitchSceneCommand(Command):
+    """
+    Command which indicates a scene switch
+    """
+    name = 'Switch Scene'
+    description = 'Causes the level to switch to another zone.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Switch Scene'
-        self.description = 'Causes the level to switch to another zone'
+        super().__init__()
 
         W = QtWidgets.QSpinBox()
         W.setMaximum(0xFF)
         self.widgets = []
         self.widgets.append(('Scene ID:', W))
-        self.GenerateLayout()
+        self.generateLayout()
 
-    def fromData(self, data):
-        self.widgets[0][1].setValue(data[0])
+    @classmethod
+    def fromData(cls, data):
+        cmd = cls()
+        cmd.widgets[0][1].setValue(data[0])
+        return cmd
 
-    def toData(self):
-        L = []
-        L.append(self.widgets[0][1].value())
-        return L
-    
-class Com_switch_scene_and_wait(Command):
-    """Command which indicates a scene switch and then wait"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Switch Scene and Wait'
-        self.description = 'Causes the level to switch to another zone and then wait'
-
-        W = QtWidgets.QSpinBox()
-        W.setMaximum(0xFF)
-        self.widgets = []
-        self.widgets.append(('Scene ID:', W))
-        self.GenerateLayout()
-
-    def fromData(self, data):
-        self.widgets[0][1].setValue(data[0])
-
-    def toData(self):
+    def asData(self):
         L = []
         L.append(self.widgets[0][1].value())
         return L
 
-class Com_show_scores(Command):
-    """Command which causes the scores to be displayed"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Show Coin Counters'
-        self.description = 'Causes the coin counters to become visible'
-        self.GenerateLayout()
-        # no settings = no widgets
+    @property
+    def dynamicDescription(self):
+        return f'to Scene ID {self.widgets[0][1].value()}'
 
-class Com_show_text(Command):
-    """Command which causes the current text to be displayed"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Show Text'
-        self.description = 'Causes the current text to fade onto the screen'
-        self.GenerateLayout()
-        # no settings = no widgets
 
-class Com_hide_text(Command):
-    """Command which causes the current text to be hidden"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Hide Text'
-        self.description = 'Causes the current text to fade away'
-        self.GenerateLayout()
-        # no settings = no widgets
+class SwitchSceneAndWaitCommand(SwitchSceneCommand):
+    """
+    Command which indicates a scene switch and then wait
+    """
+    name = 'Switch Scene and Wait'
+    description = 'Causes the level to switch to another zone and then wait.'
 
-class Com_set_text(Command):
-    """Command which sets the current text"""
+
+class ShowScoresCommand(Command):
+    """
+    Command which causes the scores to be displayed
+    """
+    name = 'Show Coin Counters'
+    description = 'Causes the coin counters to become visible.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Set Text'
-        self.description = 'Changes the current text'
+        super().__init__()
+        self.generateLayout()
+
+
+class ShowTextCommand(Command):
+    """
+    Command which causes the current text to be displayed
+    """
+    name = 'Show Text'
+    description = 'Causes the current text to fade onto the screen.'
+
+    def __init__(self):
+        super().__init__()
+        self.generateLayout()
+
+
+class HideTextCommand(Command):
+    """
+    Command which causes the current text to be hidden
+    """
+    name = 'Hide Text'
+    description = 'Causes the current text to fade out.'
+
+    def __init__(self):
+        super().__init__()
+        self.generateLayout()
+
+
+class SetTextCommand(Command):
+    """
+    Command which sets the current text
+    """
+    name = 'Set Text'
+    description = 'Changes the current text.'
+
+    def __init__(self):
+        super().__init__()
 
         W = QtWidgets.QLineEdit()
         X = QtWidgets.QPlainTextEdit()
         X.setLineWrapMode(X.NoWrap)
         self.widgets = (('Title:', W), ('Text:', X))
-        self.GenerateLayout()
+        self.generateLayout()
 
-    def fromData(self, data):
+    @classmethod
+    def fromData(cls, data):
+
         LenOfTitle = data[0]
         NumOfLines = data[1]
-        
+
         title = ''
         i = 2
         while i < LenOfTitle + 2:
@@ -204,10 +230,12 @@ class Com_set_text(Command):
             else: break
             i += 1
 
-        self.widgets[0][1].setText(title)
-        self.widgets[1][1].setPlainText(text)
+        cmd = cls()
+        cmd.widgets[0][1].setText(title)
+        cmd.widgets[1][1].setPlainText(text)
+        return cmd
 
-    def toData(self):
+    def asData(self):
         new = []
         title = str(self.widgets[0][1].text())
         text = str(self.widgets[1][1].toPlainText())
@@ -224,179 +252,235 @@ class Com_set_text(Command):
 
         return tuple(new)
 
-class Com_show_title(Command):
-    """Command which causes the title to be displayed"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Show Titlescreen Logo'
-        self.description = 'Causes the titlescreen logo to become visible'
-        self.GenerateLayout()
-        # no settings = no widgets
+    @property
+    def dynamicDescription(self):
+        return f'to "{self.widgets[0][1].text()}"'
 
-class Com_hide_title(Command):
-    """Command which causes the title to be hidden"""
-    def __init__(self):
-        Command.__init__(self)
-        self.name = 'Hide Titlescreen Logo'
-        self.description = 'Hides the titlescreen logo'
-        self.GenerateLayout()
-        # no settings = no widgets
 
-class Com_play_title_anim(Command):
-    """Command which causes the title anim to be played"""
+class ShowTitleCommand(Command):
+    """
+    Command which causes the title to be displayed
+    """
+    name = 'Show Titlescreen Logo'
+    description = 'Causes the titlescreen logo to become visible.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Play Titlescreen Logo Animation'
-        self.description = 'Plays a titlescreen logo animation'
+        super().__init__()
+        self.generateLayout()
+
+
+class HideTitleCommand(Command):
+    """
+    Command which causes the title to be hidden
+    """
+    name = 'Hide Titlescreen Logo'
+    description = 'Hides the titlescreen logo.'
+
+    def __init__(self):
+        super().__init__()
+        self.generateLayout()
+
+
+class PlayTitleAnimationCommand(Command):
+    """
+    Command which causes the title anim to be played
+    """
+    name = 'Play Titlescreen Logo Animation'
+    description = 'Plays a titlescreen logo animation.'
+
+    def __init__(self):
+        super().__init__()
 
         W = QtWidgets.QSpinBox()
         W.setMaximum(0xFF)
         self.widgets = []
         self.widgets.append(('Animation ID:', W))
-        self.GenerateLayout()
+        self.generateLayout()
 
-    def fromData(self, data):
-        self.widgets[0][1].setValue(data[0])
+    @classmethod
+    def fromData(cls, data):
+        cmd = cls()
+        cmd.widgets[0][1].setValue(data[0])
+        return cmd
 
-    def toData(self):
+    def asData(self):
         L = []
         L.append(self.widgets[0][1].value())
         return L
 
-class Com_enable_ending_mode(Command):
-    """Command which causes the ending mode to be enabled"""
+    @property
+    def dynamicDescription(self):
+        return f'animation {self.widgets[0][1].value()}'
+
+
+class EnableEndingModeCommand(Command):
+    """
+    Command which causes the ending mode to be enabled
+    """
+    name = 'Enable Ending Mode'
+    description = ('Enables the ending mode. '
+        'The ending mode disables Wii remote input for player control.')
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Enable Ending Mode'
-        self.description = 'Enables the ending mode. The ending mode disables Wii remote player control.'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_spawn_zoom(Command):
-    """Command which does something unknown"""
+
+class SpawnZoomCommand(Command):
+    """
+    Command which does something unknown
+    """
+    name = 'Spawn Zoom'
+    description = 'Spawns a hardcoded zoom actor in the stage.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Spawn Zoom'
-        self.description = 'Unknown function'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_player_win_anims(Command):
-    """Command which causes the player win animations to be played"""
+
+class PlayPlayerWinAnimationsCommand(Command):
+    """
+    Command which causes the player win animations to be played
+    """
+    name = 'Play Player Win Animations'
+    description = 'Plays an animation for the player with the most coins.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Play Player Win Animations'
-        self.description = 'Plays an animation for the player with the most coins'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_destroy_zoom(Command):
-    """Command which does something unknown"""
+
+class DestroyZoomCommand(Command):
+    """
+    Command which does something unknown
+    """
+    name = 'Destroy Zoom'
+    description = 'Despawns a previously spawned zoom actor.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Destroy Zoom'
-        self.description = 'Unknown function'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_players_look_up(Command):
-    """Command which causes the players to look up"""
+
+class PlayersLookUpCommand(Command):
+    """
+    Command which causes the players to look up
+    """
+    name = 'Players Look Up'
+    description = 'Causes all players to look upward.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Players Look Up'
-        self.description = 'Causes all players to look upward'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_the_end(Command):
-    """Command which causes 'The End' to be displayed"""
+
+class TheEndCommand(Command):
+    """
+    Command which causes 'The End' to be displayed
+    """
+    name = 'Display "The End"'
+    description = 'Causes "The End" to appear on the screen.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Display \'The End\''
-        self.description = 'Causes \'The End\' to appear on the screen'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_exit_stage(Command):
-    """Command which causes the stage to be exited"""
+
+class EndCreditsCommand(Command):
+    """
+    Command which causes the credits to end
+    """
+    name = 'End Credits'
+    description = 'End the credits.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Exit Stage'
-        self.description = 'Exits the stage'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_hide_the_end(Command):
-    """Command which causes 'The End' to be hidden"""
+
+class HideTheEndCommand(Command):
+    """
+    Command which causes 'The End' to be hidden
+    """
+    name = 'Hide "The End"'
+    description = 'Causes "The End" to fade out.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Hide \'The End\''
-        self.description = 'Causes \'The End\' to fade away'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_begin_fireworks(Command):
-    """Command which causes fireworks to begin"""
+
+class BeginFireworksCommand(Command):
+    """
+    Command which causes fireworks to begin
+    """
+    name = 'Begin Fireworks'
+    description = 'Causes fireworks to begin in the background.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'Begin Fireworks'
-        self.description = 'Causes fireworks to begin in the background'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
-class Com_end_fireworks(Command):
-    """Command which causes fireworks to end"""
+
+class EndFireworksCommand(Command):
+    """
+    Command which causes fireworks to end
+    """
+    name = 'End Fireworks'
+    description = 'Causes the background fireworks to end.'
+
     def __init__(self):
-        Command.__init__(self)
-        self.name = 'End Fireworks'
-        self.description = 'Causes the background fireworks to end'
-        self.GenerateLayout()
-        # no settings = no widgets
+        super().__init__()
+        self.generateLayout()
 
 
-CommandsById = (
-    Com_stop, # 0x00 (0)
-    Com_delay, # 0x01 (1)
-    Com_switch_scene, # 0x02 (2)
-    Com_switch_scene_and_wait, # 0x03 (3)
-    Com_show_scores, # 0x04 (4)
-    Com_show_text, # 0x05 (5)
-    Com_hide_text, # 0x06 (6)
-    Com_set_text, # 0x07 (7)
-    Com_show_title, # 0x08 (8)
-    Com_hide_title, # 0x09 (9)
-    Com_play_title_anim, # 0x0A (10)
-    Com_enable_ending_mode, # 0x0B (11)
-    Com_spawn_zoom, # 0x0C (12)
-    Com_player_win_anims, # 0x0D (13)
-    Com_destroy_zoom, # 0x0E (14)
-    Com_players_look_up, # 0x0F (15)
-    Com_the_end, # 0x10 (16)
-    Com_exit_stage, # 0x11 (17)
-    Com_hide_the_end, # 0x12 (18)
-    Com_begin_fireworks, # 0x13 (19)
-    Com_end_fireworks, # 0x14 (20)
-    )
+
+CommandsById = {
+    0x01: DelayCommand,
+    0x02: SwitchSceneCommand,
+    0x03: SwitchSceneAndWaitCommand,
+    0x04: ShowScoresCommand,
+    0x05: ShowTextCommand,
+    0x06: HideTextCommand,
+    0x07: SetTextCommand,
+    0x08: ShowTitleCommand,
+    0x09: HideTitleCommand,
+    0x0A: PlayTitleAnimationCommand,
+    0x0B: EnableEndingModeCommand,
+    0x0C: SpawnZoomCommand,
+    0x0D: PlayPlayerWinAnimationsCommand,
+    0x0E: DestroyZoomCommand,
+    0x0F: PlayersLookUpCommand,
+    0x10: TheEndCommand,
+    0x11: EndCreditsCommand,
+    0x12: HideTheEndCommand,
+    0x13: BeginFireworksCommand,
+    0x14: EndFireworksCommand,
+    }
 
 
 def CommandFromData(data):
-    """Returns an command from data"""
-    com = CommandsById[data[0]]()
-    com.fromData(data[1:])
-    return com
+    """
+    Return a command from data
+    """
+    return CommandsById[data[0]].fromData(data[1:])
 
 
 class NewerStaffRollBin():
-    """Class which represents NewerStaffRoll.bin"""
+    """
+    Class which represents NewerStaffRoll.bin
+    """
     def __init__(self, data=None):
-        """Initialises the NewerStaffRollBin"""
         self.Commands = []
-        if data != None: self.InitFromData(data)
+        if data is not None: self._initFromData(data)
 
-    def InitFromData(self, data):
-        """Initialises the NewerStaffRollBin from raw file data"""
+    def _initFromData(self, data):
+        """
+        Initialise the NewerStaffRollBin from raw file data
+        """
 
-        # No headers. Iterate over the data until we've reached the EOF com
+        # No headers. Iterate over the data until we've reached the EOF
+        # command
         commands = []
         i = 0
         while True:
@@ -405,39 +489,42 @@ class NewerStaffRollBin():
             i += 1
             comdata = data[i:i+datalen]
             i += datalen
-            
-            # Make an command
-            com = CommandFromData(comdata)
-            if isinstance(com, Com_stop): break
-            else: commands.append(com)
-            
+
+            if comdata[0] == 0: break
+
+            # Make a command
+            commands.append(CommandFromData(comdata))
+
         # Assign to self.commands
         self.Commands = commands
-        
+
 
     def save(self):
-        """Converts self.commands to bytes that can be saved"""
+        """
+        Convert self.commands to bytes that can be saved
+        """
         data = []
+
         coms = list(self.Commands)
-        coms.append(Com_stop())
+
         for com in coms:
-            comdata = com.toData()
-            data.append(len(comdata)+2)
-            
-            id = None
-            for comType in CommandsById:
-                if isinstance(com, comType): id = CommandsById.index(comType)
-            data.append(id)
+            comdata = com.asData()
+            data.append(len(comdata) + 2)
 
-            for i in comdata:
-                if not isinstance(i, int): print(i)
-                data.append(i)
+            for id, comType in CommandsById.items():
+                if isinstance(com, comType):
+                    data.append(id)
+                    break
+            else:
+                raise ValueError(f'Could not find ID of command: {com}')
 
-        if sys.version[0] == '2':
-            new = ''
-            for i in data: new += chr(i)
-            return new
-        else: return bytes(data)
+            for itm in comdata:
+                if not isinstance(itm, int):
+                    raise RuntimeError(f'{itm} is not an integer')
+                data.append(itm)
+
+        data.extend([2, 0]) # null command
+        return bytes(data)
 
 
 
@@ -447,42 +534,42 @@ class NewerStaffRollBin():
 ######################### UI Classes ###########################
 
 
-# Credits Viewer
 class CreditsViewer(QtWidgets.QWidget):
-    """Widget that allows you to view credits data"""
+    """
+    Widget that allows you to view credits data
+    """
 
-    # Drag-and-Drop Picker
     class DNDPicker(QtWidgets.QListWidget):
-        """A list widget which calls a function when an item's been moved"""
-        def __init__(self, handler):
-            QtWidgets.QListWidget.__init__(self)
-            self.handler = handler
-            self.setDragDropMode(QtWidgets.QListWidget.InternalMove)
-        def dropEvent(self, event):
-            QtWidgets.QListWidget.dropEvent(self, event)
-            self.handler()
+        """
+        A list widget that emits a signal when an item has been moved
+        """
+        itemDropped = QtCore.pyqtSignal()
 
-    # Init
+        def dropEvent(self, event):
+            super().dropEvent(event)
+            self.itemDropped.emit()
+
     def __init__(self):
-        """Initialises the widget"""
-        QtWidgets.QWidget.__init__(self)
+        super().__init__()
         self.file = None
 
         # Create the command picker widgets
         PickerBox = QtWidgets.QGroupBox('Commands')
-        self.picker = self.DNDPicker(self.HandleDragDrop)
+        self.picker = self.DNDPicker(self)
+        self.picker.setDragDropMode(self.picker.InternalMove)
+        self.picker.itemDropped.connect(self.handleDragDrop)
         self.picker.setMinimumWidth(384)
         self.ABtn = QtWidgets.QPushButton('Add')
         self.RBtn = QtWidgets.QPushButton('Remove')
 
         # Add some tooltips
-        self.ABtn.setToolTip('<b>Add:</b><br>Adds an command after the currently selected command')
+        self.ABtn.setToolTip('<b>Add:</b><br>Adds a command after the currently selected command')
         self.RBtn.setToolTip('<b>Remove:</b><br>Removes the currently selected command')
 
         # Connect them to handlers
-        self.picker.currentItemChanged.connect(self.HandleComSel)
-        self.ABtn.clicked.connect(self.HandleA)
-        self.RBtn.clicked.connect(self.HandleR)
+        self.picker.currentItemChanged.connect(self.handleComSel)
+        self.ABtn.clicked.connect(self.handleAdd)
+        self.RBtn.clicked.connect(self.handleRemove)
 
         # Disable them for now
         self.picker.setEnabled(False)
@@ -499,22 +586,45 @@ class CreditsViewer(QtWidgets.QWidget):
         # Create the command editor
         self.ComBox = QtWidgets.QGroupBox('Command')
         self.edit = CommandEditor()
-        self.edit.dataChanged.connect(self.HandleComDatChange)
+        self.edit.dataChanged.connect(self.handleComDatChange)
         L = QtWidgets.QVBoxLayout()
         L.addWidget(self.edit)
         self.ComBox.setLayout(L)
-        
+
         # Make the main layout
         L = QtWidgets.QHBoxLayout()
         L.addWidget(PickerBox)
         L.addWidget(self.ComBox)
         self.setLayout(L)
 
+    # Ideally, we could just set the corresponding Command to each
+    # QListWidgetItem's UserRole data. And that worked in old versions
+    # of PyQt. Now, however, PyQt pickles the data upon starting a drag,
+    # and Commands can't be pickled because they have widgets in their
+    # attributes. Therefore, we have to maintain our own
+    # item <-> command map that works even if an item is pickled and
+    # unpickled. To do this, we set its UserRole data to a random UUID
+    # that matches an attribute of its corresponding command. Then we
+    # use that as the basis for associations between the two.
+
+    _itemCommandMap = None
+    def commandForItem(self, item):
+        if self._itemCommandMap is None:
+            self._itemCommandMap = {}
+        return self._itemCommandMap.get(item.data(Qt.UserRole))
+    def setCommandForItem(self, item, command):
+        if self._itemCommandMap is None:
+            self._itemCommandMap = {}
+        item.setData(Qt.UserRole, command.uuid)
+        self._itemCommandMap[command.uuid] = command
+
     def setFile(self, file):
-        """Changes the file to view"""
+        """
+        Change the file to view
+        """
         self.file = file
         self.picker.clear()
-        self.SetComEdit(CommandEditor()) # clears it
+        self.setComEdit(CommandEditor()) # clears it
 
         # Enable widgets
         self.picker.setEnabled(True)
@@ -523,190 +633,207 @@ class CreditsViewer(QtWidgets.QWidget):
 
         # Add commands
         for com in file.Commands:
-            item = QtWidgets.QListWidgetItem() # self.UpdateNames will add the name
-            item.setData(QtCore.Qt.UserRole, com)
+            item = QtWidgets.QListWidgetItem() # self.updateNames will add the name
+            self.setCommandForItem(item, com)
             self.picker.addItem(item)
 
-        self.UpdateNames()
+        self.updateNames()
 
     def saveFile(self):
-        """Returns the file in saved form"""
+        """
+        Return the file in saved form
+        """
         return self.file.save() # self.file does this for us
-    
-    def UpdateNames(self):
-        """Updates item names in the msg picker"""
-        for item in self.picker.findItems('', QtCore.Qt.MatchContains):
-            com = item.data(QtCore.Qt.UserRole)
+
+    def updateNames(self):
+        """
+        Update item names in the command picker
+        """
+
+        # This is apparently the best way to iterate over all items in
+        # the list widget.
+        for item in self.picker.findItems('', Qt.MatchContains):
+            com = self.commandForItem(item)
 
             # Pick text and tooltips
             text = com.name
-            tooltip = '<b>' + com.name + ':</b><br>' + com.description
-            if isinstance(com, Com_set_text):
-                text += ' (to "' + com.widgets[0][1].text() + '")'
-            elif isinstance(com, Com_delay):
-                f = str(com.widgets[0][1].value())
-                text += ' (for ' + f + (' frames)' if f != '1' else ' frame)')
-            elif isinstance(com, Com_switch_scene) or isinstance(com, Com_switch_scene_and_wait):
-                text += ' (to Scene ID ' + str(com.widgets[0][1].value()) + ')'
-            elif isinstance(com, Com_play_title_anim):
-                text += ' ' + str(com.widgets[0][1].value())
+            tooltip = f'<b>{com.name}:</b><br>{com.description}'
+
+            if com.dynamicDescription:
+                text += f' ({com.dynamicDescription})'
 
             # Set text
             item.setText(text)
             item.setToolTip(tooltip)
 
-    def HandleDragDrop(self):
-        """Handles dragging and dropping"""
+    def handleDragDrop(self):
+        """
+        Handle dragging and dropping
+        """
         # First, update the file
         newCommands = []
-        for item in self.picker.findItems('', QtCore.Qt.MatchContains):
-            com = item.data(QtCore.Qt.UserRole)
+        for item in self.picker.findItems('', Qt.MatchContains):
+            com = self.commandForItem(item)
             newCommands.append(com)
         self.file.Commands = newCommands
 
         # Then, update the names
-        self.UpdateNames()
+        self.updateNames()
 
-    def HandleComDatChange(self):
-        """Handles changes to the current message data"""
-        self.UpdateNames()
-        
-    def HandleComSel(self):
-        self.SetComEdit(CommandEditor()) # clears it
-        
+    def handleComDatChange(self):
+        """
+        Handle changes to the current message data
+        """
+        self.updateNames()
+
+    def handleComSel(self):
+        self.setComEdit(CommandEditor()) # clears it
+
         # Get the current item (it's None if nothing's selected)
         currentItem = self.picker.currentItem()
 
         # Update the Remove btn
-        self.RBtn.setEnabled(currentItem != None)
+        self.RBtn.setEnabled(currentItem is not None)
 
         # Get the command
-        if currentItem == None: return
-        com = currentItem.data(QtCore.Qt.UserRole)
+        if currentItem is None: return
+        com = self.commandForItem(currentItem)
 
         # Set up the command editor
         e = CommandEditor(com)
-        self.SetComEdit(e)
-        
-    def HandleA(self):
-        """Handles the user clicking Add"""
-        com = GetUserPickedCommand()
-        if com == None: return
-        com = com()
+        self.setComEdit(e)
+
+    def handleAdd(self):
+        """
+        Handle the user clicking Add
+        """
+        comT = getUserPickedCommand()
+        if comT is None: return
+        com = comT()
 
         # Add it to self.file and self.picker
         self.file.Commands.append(com)
         item = QtWidgets.QListWidgetItem()
-        item.setData(QtCore.Qt.UserRole, com)
+        self.setCommandForItem(item, com)
         self.picker.addItem(item)
         self.picker.scrollToItem(item)
-        self.picker.setItemSelected(item, True)
+        item.setSelected(True)
 
-        self.UpdateNames()
-    
-    def HandleR(self):
-        """Handles the user clicking Remove"""
+        self.updateNames()
+
+    def handleRemove(self):
+        """
+        Handle the user clicking Remove
+        """
         item = self.picker.currentItem()
-        com = item.data(QtCore.Qt.UserRole)
+        com = self.commandForItem(item)
 
         # Remove it from file and the picker
         self.file.Commands.remove(com)
         self.picker.takeItem(self.picker.row(item))
 
         # Clear the selection
-        self.SetComEdit(CommandEditor())
+        self.setComEdit(CommandEditor())
         self.picker.clearSelection()
         self.RBtn.setEnabled(False)
 
-        self.UpdateNames()
+        self.updateNames()
 
-    def SetComEdit(self, e):
-        """Changes the current CommandEditor"""
+    def setComEdit(self, e):
+        """
+        Change the current CommandEditor
+        """
         x = self.ComBox.layout().takeAt(0)
-        if x != None: x.widget().delete()
-        w = x.widget()
-        del w
-        
+        if x is not None: x.widget().delete()
+
         self.ComBox.layout().addWidget(e)
-        e.dataChanged.connect(self.HandleComDatChange)
+        e.dataChanged.connect(self.handleComDatChange)
         self.ComBox.update()
 
 
 
-# Command Editor Widget
 # NOTE: Due to Qt's limitations, this works differently
 # than it did in my other tools. A new instance of this
 # is created every time the selection changes.
 class CommandEditor(QtWidgets.QWidget):
-    """Widget that allows you to edit an command"""
+    """
+    Widget that allows you to edit a command
+    """
     dataChanged = QtCore.pyqtSignal()
-    def __init__(self, com = Command()):
-        """Initialises the CommandEditor"""
-        QtWidgets.QWidget.__init__(self)
-        self.com = com
+
+    def __init__(self, com=None):
+        super().__init__()
+        self.com = Command() if com is None else com
 
         # Set the layout
-        self.setLayout(self.com.Layout)
+        self.setLayout(self.com.layout)
         self.setMinimumWidth(384)
 
         # Connect each widget to the handler
-        for i in range(self.com.Layout.count()):
-            w = self.com.Layout.itemAt(i).widget()
+        for i in range(self.com.layout.count()):
+            w = self.com.layout.itemAt(i).widget()
 
             connectors = {
                 QtWidgets.QSpinBox: 'valueChanged',
                 QtWidgets.QLineEdit: 'textEdited',
                 QtWidgets.QPlainTextEdit: 'textChanged',
                 }
-            for name in connectors:
-                if isinstance(w, name):
-                    exec('w.%s.connect(self.HandleDataChanged)' % connectors[name])
-        
+            for type, name in connectors.items():
+                if isinstance(w, type):
+                    getattr(w, name).connect(self.handleDataChanged)
+
 
     def delete(self):
-        """Prepares to be deleted"""
+        """
+        Prepare to be deleted
+        """
         self.hide()
 
-    def HandleDataChanged(self):
-        """Handles data changes"""
+
+    def handleDataChanged(self):
+        """
+        Handle data changes
+        """
         self.dataChanged.emit()
 
 
-# Get Null Layout
-def GetNullLayout():
-    """Returns a layout with only 'No settings'"""
+def getNullLayout():
+    """
+    Return a layout with only "No settings"
+    """
     NA = QtWidgets.QLabel('<i>No settings</i>')
     NA.setEnabled(False)
     L = QtWidgets.QVBoxLayout()
-    L.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+    L.setAlignment(Qt.AlignLeft | Qt.AlignTop)
     L.addWidget(NA)
     return L
 
 
-
-# Command Picker Dialog
-def GetUserPickedCommand():
-    """Returns a command picked by the user"""
+def getUserPickedCommand():
+    """
+    Return a command picked by the user
+    """
     dlg = CommandPickDlg()
-    if dlg.exec_() != QtWidgets.QDialog.Accepted: return
+    if dlg.exec_() != dlg.Accepted: return
 
     return dlg.combo.itemData(dlg.combo.currentIndex())
 
-class CommandPickDlg(QtWidgets.QDialog):
-    """Dialog that lets the user pick a command type"""
-    def __init__(self):
-        """Initialises the dialog"""
-        QtWidgets.QDialog.__init__(self)
 
-        # Make a label
-        label = QtWidgets.QLabel('Pick the type of command<br>you would like to insert:')
+class CommandPickDlg(QtWidgets.QDialog):
+    """
+    Dialog that lets the user pick a command type
+    """
+    def __init__(self):
+        super().__init__()
+
+        label = QtWidgets.QLabel('Choose a command type to insert:')
 
         # Make a combobox and add entries
+        entries = sorted(CommandsById.values(), key=lambda com: com.name)
         self.combo = QtWidgets.QComboBox()
         items = []
-        for com in CommandsById:
-            if com == Com_stop: continue
-            self.combo.addItem(com().name, com)
+        for com in entries:
+            self.combo.addItem(com.name, com)
 
         # Make a buttonbox
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
@@ -720,6 +847,7 @@ class CommandPickDlg(QtWidgets.QDialog):
         L.addWidget(buttonBox)
         self.setLayout(L)
 
+
 ################################################################
 ################################################################
 ################################################################
@@ -727,10 +855,8 @@ class CommandPickDlg(QtWidgets.QDialog):
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    """Main window"""
     def __init__(self):
-        """Initialises the window"""
-        QtWidgets.QMainWindow.__init__(self)
+        super().__init__()
         self.fp = None # file path
 
         # Create the viewer
@@ -738,14 +864,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.view)
 
         # Create the menubar and a few actions
-        self.CreateMenubar()
+        self.createMenubar()
 
         # Set window title and show the window
         self.setWindowTitle('Newer Credits Editor')
         self.show()
 
-    def CreateMenubar(self):
-        """Sets up the menubar"""
+    def createMenubar(self):
+        """
+        Sets up the menubar
+        """
         m = self.menuBar()
 
         # File Menu
@@ -753,59 +881,56 @@ class MainWindow(QtWidgets.QMainWindow):
 
         newAct = f.addAction('New File...')
         newAct.setShortcut('Ctrl+N')
-        newAct.triggered.connect(self.HandleNew)
+        newAct.triggered.connect(self.handleNew)
 
         openAct = f.addAction('Open File...')
         openAct.setShortcut('Ctrl+O')
-        openAct.triggered.connect(self.HandleOpen)
+        openAct.triggered.connect(self.handleOpen)
 
         self.saveAct = f.addAction('Save File')
         self.saveAct.setShortcut('Ctrl+S')
-        self.saveAct.triggered.connect(self.HandleSave)
+        self.saveAct.triggered.connect(self.handleSave)
         self.saveAct.setEnabled(False)
 
         self.saveAsAct = f.addAction('Save File As...')
         self.saveAsAct.setShortcut('Ctrl+Shift+S')
-        self.saveAsAct.triggered.connect(self.HandleSaveAs)
+        self.saveAsAct.triggered.connect(self.handleSaveAs)
         self.saveAsAct.setEnabled(False)
 
         f.addSeparator()
 
         exitAct = f.addAction('Exit')
         exitAct.setShortcut('Ctrl+Q')
-        exitAct.triggered.connect(self.HandleExit)
+        exitAct.triggered.connect(self.handleExit)
 
         # Help Menu
         h = m.addMenu('&Help')
 
         aboutAct= h.addAction('About...')
         aboutAct.setShortcut('Ctrl+H')
-        aboutAct.triggered.connect(self.HandleAbout)
+        aboutAct.triggered.connect(self.handleAbout)
 
 
-    def HandleNew(self):
-        """Handles creating a new file"""
+    def handleNew(self):
+        """
+        Handle creating a new file
+        """
         f = NewerStaffRollBin()
         self.view.setFile(f)
         self.saveAsAct.setEnabled(True)
 
-    def HandleOpen(self):
-        """Handles file opening"""
+    def handleOpen(self):
+        """
+        Handle file opening
+        """
         fp = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', '', 'Binary Files (*.bin);;All Files (*)')[0]
         if fp == '': return
         self.fp = fp
 
         # Open the file
-        file = open(fp, 'rb')
-        data = file.read()
-        file.close()
+        with open(fp, 'rb') as f:
+            data = f.read()
 
-        if sys.version[0] == '2': # Py2
-            # convert the str to a list
-            new = []
-            for char in data: new.append(ord(char))
-            data = new
-        
         M = NewerStaffRollBin(data)
 
         # Update the viewer with this data
@@ -815,36 +940,44 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveAct.setEnabled(True)
         self.saveAsAct.setEnabled(True)
 
-    def HandleSave(self):
-        """Handles file saving"""
+    def handleSave(self):
+        """
+        Handle file saving
+        """
         data = self.view.saveFile()
 
-        # Open the file
-        file = open(self.fp, 'wb')
-        if sys.version[0] == '2': file.write(data)
-        else: file.write(data)
-        file.close()
+        with open(self.fp, 'wb') as f:
+            f.write(data)
 
-    def HandleSaveAs(self):
-        """Handles saving to a new file"""
+    def handleSaveAs(self):
+        """
+        Handle saving to a new file
+        """
         fp = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', '', 'Binary Files (*.bin);;All Files (*)')[0]
         if fp == '': return
         self.fp = fp
 
         # Save it
-        self.HandleSave()
+        self.handleSave()
 
         # Enable saving
         self.saveAct.setEnabled(True)
 
-    def HandleExit(self):
-        """Exits"""
+    def handleExit(self):
+        """
+        Exit the editor
+        """
         raise SystemExit
 
-    def HandleAbout(self):
-        """Shows the About dialog"""
-        try: readme = open('readme.md', 'r').read()
-        except: readme = 'Newer Credits Editor %s by RoadrunnerWMC\n(No readme.md found!)\nLicensed under GPL 3' % version
+    def handleAbout(self):
+        """
+        Show the About dialog
+        """
+        try:
+            with open('readme.md', 'r', encoding='utf-8') as f:
+                readme = f.read()
+        except FileNotFoundError:
+            readme = f'Newer Credits Editor {version} by RoadrunnerWMC\n(No readme.md found!)\nLicensed under GNU GPL v3'
 
         txtedit = QtWidgets.QPlainTextEdit(readme)
         txtedit.setReadOnly(True)
@@ -866,13 +999,15 @@ class MainWindow(QtWidgets.QMainWindow):
 ################################################################
 ################################################################
 ################################################################
-############################ Main() ############################
+############################ main() ############################
 
 
-# Main function
-def main():
-    """Main startup function"""
-    app = QtWidgets.QApplication(sys.argv)
+def main(argv):
+    """
+    Main startup function
+    """
+    app = QtWidgets.QApplication(argv)
     mainWindow = MainWindow()
     sys.exit(app.exec_())
-main()
+
+if __name__ == '__main__': main(sys.argv)
