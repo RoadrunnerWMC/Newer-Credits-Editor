@@ -22,7 +22,7 @@ If you are not on Windows or you want the very latest features, you'll need to r
 ### How to Run Newer Credits Editor from Source
 
 Download and install the following:
- * Python 3.4 (or newer) - http://www.python.org
+ * Python 3.6 (or newer) - http://www.python.org
  * PyQt 5.3 (or newer) - http://www.riverbankcomputing.co.uk/software/pyqt/intro
  * cx_Freeze 4.3 (or newer) (optional) - http://cx-freeze.sourceforge.net
 
