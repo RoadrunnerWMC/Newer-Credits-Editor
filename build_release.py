@@ -18,7 +18,7 @@ import PyInstaller.__main__
 
 PROJECT_NAME = 'Newer Credits Editor'
 FULL_PROJECT_NAME = 'Newer Credits Editor'
-PROJECT_VERSION = '1.2'
+PROJECT_VERSION = '1.3'
 
 WIN_ICON = None
 MAC_ICON = None

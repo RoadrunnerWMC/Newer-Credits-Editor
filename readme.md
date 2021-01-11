@@ -1,5 +1,5 @@
 # Newer Credits Editor
-(1.2)
+(1.3)
 
 ----------------------------------------------------------------
 
@@ -53,11 +53,14 @@ See the license file in the distribution for information.
 
 ## Changelog
 
-Release 1.2 (unreleased)
+Release 1.3 (January 10, 2021)
+ * Started providing builds for 64-bit Windows, Linux, and macOS
  * Now supports PyQt 5.7
  * Removed lingering Python 2 code
  * Various code style improvements
 
+*Note: there was no official release 1.2. The repository code was marked as "1.2" for many years, so I skipped ahead to 1.3 in order to distinguish that release from that.*
+ 
 Release 1.1 (August 2, 2014)
  * Added license.txt and license headers to the source files
  * New readme
