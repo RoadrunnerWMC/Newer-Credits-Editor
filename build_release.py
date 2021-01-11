@@ -28,6 +28,7 @@ SCRIPT_FILE = 'newer_credits_editor.py'
 DATA_FOLDERS = []
 DATA_FILES = ['readme.md', 'license.txt']
 
+EXCLUDE_SELECT = False
 EXCLUDE_THREADING = False
 
 # macOS only
@@ -127,6 +128,8 @@ excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'hashlib', 'inspect',
     'socket', 'ssl', 'unittest',
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
 
+if EXCLUDE_SELECT:
+    excludes.append('select')
 if EXCLUDE_THREADING:
     excludes.append('threading')
 
