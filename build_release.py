@@ -28,7 +28,7 @@ SCRIPT_FILE = 'newer_credits_editor.py'
 DATA_FOLDERS = []
 DATA_FILES = ['readme.md', 'license.txt']
 
-EXCLUDE_THREADING = True
+EXCLUDE_THREADING = False
 
 # macOS only
 AUTO_APP_BUNDLE_NAME = SCRIPT_FILE.split('.')[0] + '.app'
